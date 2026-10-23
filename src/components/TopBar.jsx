@@ -217,10 +217,10 @@ const TopNavBar = ({ onMenuClick }) => {
 
             <div
               className="flex items-center gap-3 group cursor-pointer"
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/dashboard")}
             >
               <div className="bg-gradient-to-br from-teal-500 to-cyan-600 text-white font-bold w-10 h-10 flex items-center justify-center rounded-xl shadow-lg shadow-teal-500/20 transform group-hover:scale-105 transition-transform">
-                TT
+                AI
               </div>
               <span className="text-xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
                 Avi India
