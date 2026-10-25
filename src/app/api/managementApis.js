@@ -9,10 +9,30 @@ export const getDashboardData = async () => {
 
 
 // GET /management/students
-export const getStudents = async () => {
-  const response = await axiosInstance.get('/management/students');
+export const getStudents = async ({
+  q = "",
+  courseId,
+  feeStatus,
+  page = 0,
+  size = 20,
+} = {}) => {
+  const params = { q: q.trim(), page, size };
+
+  if (courseId !== undefined && courseId !== null && courseId !== "") {
+    params.courseId = courseId;
+  }
+
+  if (feeStatus !== undefined && feeStatus !== null && feeStatus !== "") {
+    params.feeStatus = feeStatus;
+  }
+
+  const response = await axiosInstance.get("/management/students", {
+    params,
+  });
+
   return response.data;
 };
+
 
 // GET /management/students/active
 export const getActiveStudents = async () => {

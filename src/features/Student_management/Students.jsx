@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   RefreshCw,
   GraduationCap,
@@ -137,6 +137,10 @@ const Students = () => {
   const [students, setStudents] = useState([]);
   const [activeStudents, setActiveStudents] = useState([]);
   const [search, setSearch] = useState("");
+  const [studentPage, setStudentPage] = useState(0);
+  const [studentSize] = useState(20);
+  const [studentTotalElements, setStudentTotalElements] = useState(0);
+  const [studentTotalPages, setStudentTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -156,7 +160,7 @@ const Students = () => {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
 
-  const loadStudents = async (isRefresh = false) => {
+  const loadStudents = async (isRefresh = false, query = search, page = studentPage) => {
     if (isRefresh) {
       setRefreshing(true);
     } else {
@@ -168,7 +172,7 @@ const Students = () => {
 
     try {
       const [allResponse, activeResponse] = await Promise.all([
-        getStudents(),
+        getStudents({ q: query.trim(), page, size: studentSize }),
         getActiveStudents(),
       ]);
 
@@ -177,6 +181,8 @@ const Students = () => {
 
       setStudents(allRecords ?? []);
       setActiveStudents(activeRecords ?? []);
+      setStudentTotalElements(Number(allResponse?.totalElements ?? allRecords?.length ?? 0));
+      setStudentTotalPages(Number(allResponse?.totalPages ?? (allRecords?.length ? 1 : 0)));
 
       if (allRecords === null || activeRecords === null) {
         setResponseWarning(
@@ -270,8 +276,12 @@ const loadPaymentStudents = async () => {
 };
 
   useEffect(() => {
-    loadStudents();
-  }, []);
+    const timer = setTimeout(() => {
+      loadStudents(false, search, studentPage);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search, studentPage, studentSize]);
 
   useEffect(() => {
     if (view !== "payments") return undefined;
@@ -283,26 +293,15 @@ const loadPaymentStudents = async () => {
     return () => clearTimeout(timer);
   }, [view, paymentType, paymentSearch, paymentPage, paymentSize]);
 
-  const filteredStudents = useMemo(() => {
-    const query = search.trim().toLowerCase();
 
-    if (!query) return students;
-
-    return students.filter((student) =>
-      [
-        student?.id,
-        student?.name,
-        student?.email,
-        student?.phone,
-        student?.status,
-      ].some((value) =>
-        String(value ?? "").toLowerCase().includes(query)
-      )
-    );
-  }, [students, search]);
 
   const handleViewChange = (nextView) => {
     setView(nextView);
+  };
+
+  const handleStudentSearchChange = (event) => {
+    setSearch(event.target.value);
+    setStudentPage(0);
   };
 
   const handlePaymentTypeChange = (event) => {
@@ -403,7 +402,7 @@ const loadPaymentStudents = async () => {
                   </p>
 
                   <p className="mt-2 text-3xl font-black tracking-tight text-slate-900">
-                    {loading ? "—" : students.length.toLocaleString("en-IN")}
+                    {loading ? "—" : studentTotalElements.toLocaleString("en-IN")}
                   </p>
 
                   <p className="mt-1 text-xs text-slate-500">
@@ -463,7 +462,7 @@ const loadPaymentStudents = async () => {
                 <input
                   type="search"
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={handleStudentSearchChange}
                   placeholder="Search students..."
                   aria-label="Search students"
                   className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10"
@@ -490,7 +489,7 @@ const loadPaymentStudents = async () => {
                   description="Resolve the loading error above and try again."
                 />
               </div>
-            ) : filteredStudents.length === 0 ? (
+            ) : students.length === 0 ? (
               <EmptyState
                 title="No students found"
                 description={
@@ -515,7 +514,7 @@ const loadPaymentStudents = async () => {
                   </thead>
 
                   <tbody className="divide-y divide-slate-100">
-                    {filteredStudents.map((student, index) => (
+                    {students.map((student, index) => (
                       <tr
                         key={student?.id ?? `${student?.email ?? "student"}-${index}`}
                         className="transition hover:bg-slate-50/70"
@@ -593,10 +592,37 @@ const loadPaymentStudents = async () => {
               </div>
             )}
 
-            {!loading && !error && filteredStudents.length > 0 && (
-              <div className="border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
-                Showing {filteredStudents.length.toLocaleString("en-IN")} of{" "}
-                {students.length.toLocaleString("en-IN")} students
+            {!loading && !error && students.length > 0 && (
+              <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-slate-500">
+                  Showing {studentPage * studentSize + 1}–{Math.min(
+                    (studentPage + 1) * studentSize,
+                    studentTotalElements
+                  )} of {studentTotalElements.toLocaleString("en-IN")} students
+                </p>
+                <div className="flex items-center justify-between gap-3 sm:justify-end">
+                  <span className="text-xs text-slate-500">
+                    Page {studentTotalPages === 0 ? 0 : studentPage + 1} of {studentTotalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setStudentPage((current) => Math.max(0, current - 1))}
+                    disabled={studentPage <= 0 || loading}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronLeft size={16} />
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStudentPage((current) => Math.min(studentTotalPages - 1, current + 1))}
+                    disabled={studentPage >= studentTotalPages - 1 || studentTotalPages === 0 || loading}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Next
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
               </div>
             )}
           </section>
@@ -670,7 +696,7 @@ const loadPaymentStudents = async () => {
             <EmptyState
               title="No payment records found"
               description={
-                paymentSearch.trim() || paymentType !== "All"
+                paymentSearch.trim() || paymentType !== "ALL"
                   ? "Try changing your search or selecting a different payment status."
                   : "No student payment records are available."
               }
