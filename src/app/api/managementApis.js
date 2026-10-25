@@ -20,6 +20,29 @@ export const getActiveStudents = async () => {
   return response.data;
 };
 
+
+
+// GET /management/students/payments
+export const getPaymentStudents = async ({
+  type,
+  q = "",
+  page = 0,
+  size = 20,
+} = {}) => {
+  const response = await axiosInstance.get(
+    "/management/students/payments",
+    {
+      params: {
+        type,
+        q: q.trim(),
+        page,
+        size,
+      },
+    }
+  );
+  return response.data;
+};
+
 // GET /management/employees
 export const getEmployees = async () => {
   const response = await axiosInstance.get('/management/employees');

@@ -94,3 +94,4 @@ export const DocumentFolderTypeEnum = {
     PAYMENT: 'payment',
     OTHERS: 'others'
 };
+
